@@ -16,6 +16,23 @@
   --red-dim:     rgba(239, 68, 68, 0.12);
   --mono:        ui-monospace, 'Cascadia Code', Consolas, monospace;
   --sans:        system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --dot-color:   #1c1f2e;
+}
+
+/* ── Light mode ─────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:          #f0f3fa;
+  --surface:     #fafbff;
+  --card:        #ffffff;
+  --card-hover:  #f0f4fb;
+  --border:      #dde1f0;
+  --border-soft: #eaedf8;
+  --text-1:      #1b1e2e;
+  --text-2:      #4a4f6e;
+  --text-3:      #8b90b0;
+  --accent:      #3b6cf8;
+  --red-dim:     rgba(239, 68, 68, 0.07);
+  --dot-color:   rgba(100, 108, 150, 0.13);
 }
 
 /* ── Reset ──────────────────────────────────────────────── */
@@ -75,6 +92,24 @@ body {
   font-family: var(--mono);
 }
 
+.theme-toggle {
+  margin-left: 12px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  cursor: pointer;
+  width: 30px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.theme-toggle:hover { background: var(--card); border-color: var(--text-3); }
+
 /* ── Status dot ─────────────────────────────────────────── */
 .status-dot {
   width: 7px;
@@ -103,7 +138,7 @@ body {
 
 .pane--graph {
   background: var(--bg);
-  background-image: radial-gradient(circle, #1c1f2e 1px, transparent 1px);
+  background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
   background-size: 28px 28px;
 }
 
@@ -229,7 +264,7 @@ body {
 
 .stat--ok  .stat__value { color: var(--green); }
 .stat--warn .stat__value { color: var(--yellow); }
-.stat--error .stat__value { color: var(--red); }
+.stat--error .stat__value { color: var(--red); font-size: 15px; }
 
 /* ── Graph pane meta label ──────────────────────────────── */
 .pane__meta {
@@ -263,6 +298,34 @@ body {
   justify-content: center;
   color: var(--text-3);
   font-size: 13px;
+}
+
+/* ── Graph controls ─────────────────────────────────────── */
+.graph-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
+
+.graph-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--sans);
+  color: var(--text-2);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.graph-btn:hover {
+  color: var(--text-1);
+  background: var(--card-hover);
 }
 
 /* ── Graph legend ────────────────────────────────────────── */
@@ -361,7 +424,7 @@ body {
 }
 
 .anomaly-card__current {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
   font-family: var(--mono);
   color: var(--red);
@@ -379,6 +442,19 @@ body {
   font-size: 11px;
   color: var(--text-3);
   font-family: var(--mono);
+}
+
+/* ── Anomaly node ring animation ────────────────────────── */
+.anomaly-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: anomaly-pulse 1.8s ease-out infinite;
+}
+
+@keyframes anomaly-pulse {
+  0%   { transform: scale(1);    opacity: 0.65; }
+  70%  { transform: scale(1.35); opacity: 0;    }
+  100% { transform: scale(1.35); opacity: 0;    }
 }
 
 /* ── Anomaly healthy state ──────────────────────────────── */

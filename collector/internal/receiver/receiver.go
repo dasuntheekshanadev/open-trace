@@ -2,6 +2,7 @@ package receiver
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -42,6 +43,22 @@ func (r *Receiver) Handle(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		http.Error(w, "failed to read body", http.StatusBadRequest)
 		return
+	}
+
+	// Decompress gzip — otlphttp exporter sends gzip by default
+	if req.Header.Get("Content-Encoding") == "gzip" {
+		gr, err := gzip.NewReader(bytes.NewReader(body))
+		if err != nil {
+			http.Error(w, "failed to decompress body", http.StatusBadRequest)
+			log.Printf("receiver: gzip decompress error: %v", err)
+			return
+		}
+		body, err = io.ReadAll(gr)
+		gr.Close()
+		if err != nil {
+			http.Error(w, "failed to read decompressed body", http.StatusBadRequest)
+			return
+		}
 	}
 
 	var exportReq collectorv1.ExportTraceServiceRequest
