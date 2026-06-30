@@ -59,7 +59,9 @@ export default function App() {
   const connected    = graphData !== null;
 
   // Compute live stats for the stats bar
-  const services     = new Set(edges.flatMap(e => [e.source, e.target]));
+  const allServices  = graphData?.services ?? [];
+  const edgeServices = new Set(edges.flatMap(e => [e.source, e.target]));
+  const services     = new Set([...allServices, ...edgeServices]);
   const totalCalls   = edges.reduce((s, e) => s + e.call_count, 0);
   const totalErrors  = edges.reduce((s, e) => s + e.error_count, 0);
   const avgLatency   = edges.length > 0

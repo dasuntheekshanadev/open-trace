@@ -76,7 +76,9 @@ export function ServiceGraph({ data, anomalies, onEdgeClick, selectedEdge, theme
   useEffect(() => {
     const el        = svgRef.current;
     const container = containerRef.current;
-    if (!el || !container || !data?.edges?.length) return;
+    if (!el || !container || !data) return;
+    const hasData = (data.services?.length ?? 0) > 0 || data.edges.length > 0;
+    if (!hasData) return;
 
     const W = container.clientWidth  || 900;
     const H = container.clientHeight || 480;
@@ -106,7 +108,10 @@ export function ServiceGraph({ data, anomalies, onEdgeClick, selectedEdge, theme
       return '#22c55e';
     };
 
-    const serviceSet = new Set<string>();
+    // Include every known service, not just those that appear in an edge.
+    // Services that have sent spans but have no observed cross-service connections
+    // still appear as isolated nodes so the operator can see them immediately.
+    const serviceSet = new Set<string>(data.services ?? []);
     data.edges.forEach(e => { serviceSet.add(e.source); serviceSet.add(e.target); });
 
     const nodes: NodeDatum[] = Array.from(serviceSet).map(id => {
@@ -285,7 +290,7 @@ export function ServiceGraph({ data, anomalies, onEdgeClick, selectedEdge, theme
 
   return (
     <div ref={containerRef} className="graph-container">
-      {!data?.edges?.length ? (
+      {!(data?.services?.length || data?.edges?.length) ? (
         <div className="graph-empty">Waiting for trace data...</div>
       ) : (
         <>

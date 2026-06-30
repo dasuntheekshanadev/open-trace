@@ -32,17 +32,19 @@ type EdgeStats struct {
 
 // Graph is a thread-safe, in-memory service dependency graph.
 type Graph struct {
-	mu      sync.RWMutex
-	edges   map[EdgeKey]*EdgeStats
-	spans   map[string]*Span   // spanID → span
-	pending map[string][]*Span // parentSpanID → child spans waiting for that parent
+	mu       sync.RWMutex
+	edges    map[EdgeKey]*EdgeStats
+	spans    map[string]*Span   // spanID → span
+	pending  map[string][]*Span // parentSpanID → child spans waiting for that parent
+	services map[string]struct{} // every service name that has ever sent a span
 }
 
 func New() *Graph {
 	g := &Graph{
-		edges:   make(map[EdgeKey]*EdgeStats),
-		spans:   make(map[string]*Span),
-		pending: make(map[string][]*Span),
+		edges:    make(map[EdgeKey]*EdgeStats),
+		spans:    make(map[string]*Span),
+		pending:  make(map[string][]*Span),
+		services: make(map[string]struct{}),
 	}
 	go g.gcLoop()
 	go g.pendingGCLoop()
@@ -63,6 +65,7 @@ func (g *Graph) ProcessSpans(spans []*Span) {
 	// Phase 1 — index and resolve pending in one pass
 	for _, s := range spans {
 		g.spans[s.SpanID] = s
+		g.services[s.ServiceName] = struct{}{}
 
 		// Resolve child spans that arrived before this parent
 		if children, ok := g.pending[s.SpanID]; ok {
@@ -119,6 +122,17 @@ func (g *Graph) Snapshot() map[EdgeKey]*EdgeStats {
 		out[k] = &cp
 	}
 	return out
+}
+
+// Services returns a sorted slice of every service name that has ever sent a span.
+func (g *Graph) Services() []string {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	names := make([]string, 0, len(g.services))
+	for name := range g.services {
+		names = append(names, name)
+	}
+	return names
 }
 
 // gcLoop removes spans older than 10 minutes from the buffer every 5 minutes.

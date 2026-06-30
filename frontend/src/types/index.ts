@@ -9,6 +9,7 @@ export interface Edge {
 
 export interface GraphData {
   edges: Edge[];
+  services: string[];
 }
 
 export interface Anomaly {

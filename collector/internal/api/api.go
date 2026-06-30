@@ -33,7 +33,8 @@ type edgeResponse struct {
 }
 
 type graphResponse struct {
-	Edges []edgeResponse `json:"edges"`
+	Edges    []edgeResponse `json:"edges"`
+	Services []string       `json:"services"`
 }
 
 // HandleRootCause serves GET /rootcause?source=X&target=Y — ranks span attributes
@@ -140,7 +141,10 @@ func (a *API) HandleTimeSeries(w http.ResponseWriter, r *http.Request) {
 func (a *API) HandleGraph(w http.ResponseWriter, r *http.Request) {
 	snapshot := a.g.Snapshot()
 
-	resp := graphResponse{Edges: []edgeResponse{}}
+	resp := graphResponse{
+		Edges:    []edgeResponse{},
+		Services: a.g.Services(),
+	}
 	for key, stats := range snapshot {
 		edge := edgeResponse{
 			Source:     key.Source,
