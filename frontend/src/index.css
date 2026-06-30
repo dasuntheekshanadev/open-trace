@@ -103,6 +103,8 @@ body {
 
 .pane--graph {
   background: var(--bg);
+  background-image: radial-gradient(circle, #1c1f2e 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 
 .pane__title {
@@ -161,6 +163,83 @@ body {
   border-right: none;
   flex: 1;
   overflow-y: auto;
+}
+
+/* ── Stats bar ──────────────────────────────────────────── */
+.statsbar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 36px;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.statsbar--connecting {
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-3);
+  font-family: var(--mono);
+}
+
+.statsbar__connecting-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 1; }
+}
+
+.statsbar__sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 16px;
+  flex-shrink: 0;
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.stat__label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.stat__value {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--mono);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat--ok  .stat__value { color: var(--green); }
+.stat--warn .stat__value { color: var(--yellow); }
+.stat--error .stat__value { color: var(--red); }
+
+/* ── Graph pane meta label ──────────────────────────────── */
+.pane__meta {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: var(--text-3);
+  font-family: var(--mono);
 }
 
 /* ── Graph container ────────────────────────────────────── */
@@ -300,6 +379,168 @@ body {
   font-size: 11px;
   color: var(--text-3);
   font-family: var(--mono);
+}
+
+/* ── Anomaly healthy state ──────────────────────────────── */
+.anomaly-healthy {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.anomaly-healthy__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.anomaly-healthy__title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.anomaly-healthy__sub {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.5;
+}
+
+/* ── Overview panel ─────────────────────────────────────── */
+.pane--overview {
+  border-right: none;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.overview {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.overview__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.overview__heading {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 2px;
+}
+
+.overview__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.overview__edge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.overview__svc {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+
+.overview__arrow {
+  color: var(--text-3);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.overview__bar-wrap {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.overview__bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.overview__bar--error {
+  background: var(--red);
+}
+
+.overview__num {
+  font-size: 11px;
+  font-family: var(--mono);
+  font-weight: 500;
+  color: var(--text-2);
+  width: 40px;
+  text-align: right;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.overview__num--error { color: var(--red); }
+
+.overview__hint {
+  font-size: 11px;
+  color: var(--text-3);
+  padding-top: 4px;
+  border-top: 1px solid var(--border-soft);
+}
+
+/* ── Overview empty state ───────────────────────────────── */
+.overview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  gap: 10px;
+  text-align: center;
+}
+
+.overview-empty__ring {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.overview-empty__text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.overview-empty__sub {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.5;
+  max-width: 220px;
 }
 
 /* ── Root cause panel ───────────────────────────────────── */

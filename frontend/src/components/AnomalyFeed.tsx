@@ -2,8 +2,8 @@ import type { Anomaly } from '../types';
 
 interface Props {
   anomalies: Anomaly[];
-  selected: Anomaly | null;
-  onSelect: (a: Anomaly) => void;
+  selected:  Anomaly | null;
+  onSelect:  (a: Anomaly) => void;
 }
 
 function formatMetric(metric: string, value: number): string {
@@ -12,16 +12,21 @@ function formatMetric(metric: string, value: number): string {
 }
 
 function metricLabel(metric: string): string {
-  if (metric === 'error_rate') return 'Error Rate';
-  return 'Latency';
+  return metric === 'error_rate' ? 'Error Rate' : 'Latency';
 }
 
 export function AnomalyFeed({ anomalies, selected, onSelect }: Props) {
   if (anomalies.length === 0) {
     return (
-      <div className="anomaly-empty">
-        <span className="status-dot status-dot--ok" />
-        All edges nominal
+      <div className="anomaly-healthy">
+        <div className="anomaly-healthy__row">
+          <span className="status-dot status-dot--ok" style={{ flexShrink: 0 }} />
+          <span className="anomaly-healthy__title">All edges nominal</span>
+        </div>
+        <p className="anomaly-healthy__sub">
+          No anomalies detected. Anomaly detection runs every 10 seconds using
+          a rolling statistical baseline.
+        </p>
       </div>
     );
   }
