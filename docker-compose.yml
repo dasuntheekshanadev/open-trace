@@ -1,0 +1,123 @@
+version: "3.9"
+
+# Single entry point for the full OpenTrace platform.
+# Run: docker compose up --build
+# Then open: http://localhost:3000
+
+services:
+
+  # ── Infrastructure ───────────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: jaeger
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4318:4318"     # OTLP HTTP (direct access)
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3-alpine
+    container_name: clickhouse
+    ports:
+      - "8123:8123"     # HTTP interface (internal use only)
+    environment:
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=opentrace
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--user=default", "--password=opentrace", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── OpenTrace platform ───────────────────────────────────────────────
+  collector:
+    build:
+      context: ./collector
+      dockerfile: Dockerfile
+    container_name: collector
+    environment:
+      - PORT=4319
+      - JAEGER_ENDPOINT=http://jaeger:4318
+      - CLICKHOUSE_URL=http://default:opentrace@clickhouse:8123
+    ports:
+      - "4319:4319"     # OTLP receiver (for external apps to send traces)
+    depends_on:
+      - jaeger
+      - clickhouse
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:80"       # Dashboard → http://localhost:3000
+    depends_on:
+      - collector
+
+  # ── Sample app (demo microservices) ─────────────────────────────────
+  inventory:
+    build:
+      context: ./sample-app
+      dockerfile: cmd/inventory/Dockerfile
+    container_name: inventory
+    environment:
+      - OTLP_ENDPOINT=collector:4319
+      - PORT=8083
+    depends_on:
+      - collector
+
+  payment:
+    build:
+      context: ./sample-app
+      dockerfile: cmd/payment/Dockerfile
+    container_name: payment
+    environment:
+      - OTLP_ENDPOINT=collector:4319
+      - PORT=8082
+    ports:
+      - "8082:8082"     # Exposed so you can toggle fault modes: curl localhost:8082/admin/fault
+    depends_on:
+      - collector
+
+  checkout:
+    build:
+      context: ./sample-app
+      dockerfile: cmd/checkout/Dockerfile
+    container_name: checkout
+    environment:
+      - OTLP_ENDPOINT=collector:4319
+      - PORT=8081
+      - PAYMENT_URL=http://payment:8082/charge
+      - INVENTORY_URL=http://inventory:8083/check
+    depends_on:
+      - payment
+      - inventory
+
+  gateway:
+    build:
+      context: ./sample-app
+      dockerfile: cmd/gateway/Dockerfile
+    container_name: gateway
+    environment:
+      - OTLP_ENDPOINT=collector:4319
+      - PORT=8080
+      - CHECKOUT_URL=http://checkout:8081/checkout
+    depends_on:
+      - checkout
+
+  loadgen:
+    build:
+      context: ./sample-app
+      dockerfile: cmd/loadgen/Dockerfile
+    container_name: loadgen
+    environment:
+      - GATEWAY_URL=http://gateway:8080/checkout
+    depends_on:
+      - gateway
+
+volumes:
+  clickhouse-data:

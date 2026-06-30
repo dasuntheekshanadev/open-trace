@@ -1,0 +1,30 @@
+# Go binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go test artifacts
+*.test
+*.out
+coverage.txt
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env*.local
+
+# Claude Code internal files
+.claude/
+
+# Misc
+.DS_Store
+*.txt
+*.log
+.env
+.env.local
+
+# ClickHouse data (local dev only)
+clickhouse-data/

@@ -1,0 +1,91 @@
+version: "3.9"
+
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: jaeger
+    ports:
+      - "16686:16686" # Jaeger UI -> http://localhost:16686
+      - "4318:4318"   # OTLP HTTP (Jaeger's own receiver, kept for direct access)
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
+  collector:
+    build:
+      context: ../collector
+      dockerfile: Dockerfile
+    container_name: collector
+    environment:
+      - PORT=4319
+      - JAEGER_ENDPOINT=http://jaeger:4318 # forward traces to Jaeger so its UI still works
+    ports:
+      - "4319:4319" # OTLP receiver — services send traces here
+      - "8090:8090" # not used yet, reserved for future metrics port
+    depends_on:
+      - jaeger
+
+  inventory:
+    build:
+      context: .
+      dockerfile: cmd/inventory/Dockerfile
+    container_name: inventory
+    environment:
+      - OTLP_ENDPOINT=collector:4319
+      - PORT=8083
+    ports:
+      - "8083:8083"
+    depends_on:
+      - collector
+
+  payment:
+    build:
+      context: .
+      dockerfile: cmd/payment/Dockerfile
+    container_name: payment
+    environment:
+      - OTLP_ENDPOINT=collector:4319
+      - PORT=8082
+    ports:
+      - "8082:8082"
+    depends_on:
+      - collector
+
+  checkout:
+    build:
+      context: .
+      dockerfile: cmd/checkout/Dockerfile
+    container_name: checkout
+    environment:
+      - OTLP_ENDPOINT=collector:4319
+      - PORT=8081
+      - PAYMENT_URL=http://payment:8082/charge
+      - INVENTORY_URL=http://inventory:8083/check
+    ports:
+      - "8081:8081"
+    depends_on:
+      - payment
+      - inventory
+
+  gateway:
+    build:
+      context: .
+      dockerfile: cmd/gateway/Dockerfile
+    container_name: gateway
+    environment:
+      - OTLP_ENDPOINT=collector:4319
+      - PORT=8080
+      - CHECKOUT_URL=http://checkout:8081/checkout
+    ports:
+      - "8080:8080"
+    depends_on:
+      - checkout
+
+  loadgen:
+    build:
+      context: .
+      dockerfile: cmd/loadgen/Dockerfile
+    container_name: loadgen
+    environment:
+      - GATEWAY_URL=http://gateway:8080/checkout
+    depends_on:
+      - gateway
