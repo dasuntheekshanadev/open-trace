@@ -44,6 +44,8 @@ export function ServiceGraph({ data, anomalies, onEdgeClick, selectedEdge, theme
   const nodePositions = useRef<Map<string, { x: number; y: number }>>(new Map());
   const zoomRef       = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const nodesRef      = useRef<NodeDatum[]>([]);
+  const transformRef  = useRef<d3.ZoomTransform>(d3.zoomIdentity);
+  const hasAutoFitted = useRef(false);
   const [layoutKey, setLayoutKey] = useState(0);
 
   const fitToScreen = useCallback(() => {
@@ -70,6 +72,8 @@ export function ServiceGraph({ data, anomalies, onEdgeClick, selectedEdge, theme
 
   const resetLayout = useCallback(() => {
     nodePositions.current.clear();
+    transformRef.current = d3.zoomIdentity;
+    hasAutoFitted.current = false;
     setLayoutKey(k => k + 1);
   }, []);
 
@@ -114,12 +118,14 @@ export function ServiceGraph({ data, anomalies, onEdgeClick, selectedEdge, theme
     const serviceSet = new Set<string>(data.services ?? []);
     data.edges.forEach(e => { serviceSet.add(e.source); serviceSet.add(e.target); });
 
-    const nodes: NodeDatum[] = Array.from(serviceSet).map(id => {
+    const nodes: NodeDatum[] = Array.from(serviceSet).map((id, i) => {
       const saved = nodePositions.current.get(id);
-      // Pre-pin nodes that have saved positions so they never drift on click
-      return saved
-        ? { id, x: saved.x, y: saved.y, fx: saved.x, fy: saved.y }
-        : { id };
+      if (saved) return { id, x: saved.x, y: saved.y, fx: saved.x, fy: saved.y };
+      // New nodes start near center in golden-angle spiral so forces have
+      // a reasonable starting point and don't scatter nodes off-screen
+      const angle = (i * 2.399) % (Math.PI * 2);
+      const r = 30 + i * 10;
+      return { id, x: W / 2 + Math.cos(angle) * r, y: H / 2 + Math.sin(angle) * r };
     });
 
     const links: LinkDatum[] = data.edges.map(e => ({
@@ -160,17 +166,26 @@ export function ServiceGraph({ data, anomalies, onEdgeClick, selectedEdge, theme
     const zoomG = svg.append('g');
     const zoom  = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.15, 4])
-      .on('zoom', e => zoomG.attr('transform', e.transform));
+      .on('zoom', e => {
+        zoomG.attr('transform', e.transform);
+        transformRef.current = e.transform; // persist so next render restores it
+      });
     svg.call(zoom).on('dblclick.zoom', null);
+    // Restore the user's viewport — prevents the 5 s poll from jumping back to identity
+    svg.call(zoom.transform, transformRef.current);
     zoomRef.current  = zoom;
     nodesRef.current = nodes;
 
     // ── Simulation ───────────────────────────────────────────
     const sim = d3.forceSimulation(nodes)
-      .force('link',    d3.forceLink<NodeDatum, LinkDatum>(links).id(d => d.id).distance(210))
-      .force('charge',  d3.forceManyBody().strength(-850))
-      .force('center',  d3.forceCenter(W / 2, H / 2))
-      .force('collide', d3.forceCollide(95));
+      .force('link',    d3.forceLink<NodeDatum, LinkDatum>(links).id(d => d.id).distance(190))
+      // distanceMax prevents isolated nodes from being flung off-screen
+      .force('charge',  d3.forceManyBody().strength(-500).distanceMax(400))
+      .force('center',  d3.forceCenter(W / 2, H / 2).strength(0.08))
+      .force('collide', d3.forceCollide(90))
+      // Gentle gravity so isolated nodes stay near the visible area
+      .force('x',       d3.forceX(W / 2).strength(0.03))
+      .force('y',       d3.forceY(H / 2).strength(0.03));
 
     // ── Edge layer ───────────────────────────────────────────
     const edgeG = zoomG.append('g');
@@ -256,11 +271,13 @@ export function ServiceGraph({ data, anomalies, onEdgeClick, selectedEdge, theme
       .attr('font-family', 'system-ui, -apple-system, sans-serif')
       .attr('fill', text1);
 
-    // Pin all nodes once the simulation settles, then auto-fit if user hasn't panned
+    // Pin all nodes once simulation settles; auto-fit only on very first load
     sim.on('end', () => {
       nodes.forEach(n => { if (n.x != null) { n.fx = n.x; n.fy = n.y; } });
-      const t = d3.zoomTransform(el);
-      if (t.k === 1 && t.x === 0 && t.y === 0) fitToScreen();
+      if (!hasAutoFitted.current) {
+        hasAutoFitted.current = true;
+        fitToScreen();
+      }
     });
 
     // ── Tick ─────────────────────────────────────────────────
