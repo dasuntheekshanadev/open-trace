@@ -33,11 +33,14 @@ services:
       retries: 10
 
   # ── OpenTrace platform ───────────────────────────────────────────────
+  # Container names are prefixed with "obs-" to avoid conflicts when running
+  # alongside the OpenTelemetry demo, which uses generic names like
+  # "frontend", "checkout", and "payment" for its own services.
   collector:
     build:
       context: ./collector
       dockerfile: Dockerfile
-    container_name: collector
+    container_name: obs-collector
     environment:
       - PORT=4319
       - JAEGER_ENDPOINT=http://jaeger:4318
@@ -52,7 +55,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: frontend
+    container_name: obs-frontend
     ports:
       - "3000:80"       # Dashboard → http://localhost:3000
     depends_on:
@@ -63,7 +66,7 @@ services:
     build:
       context: ./sample-app
       dockerfile: cmd/inventory/Dockerfile
-    container_name: inventory
+    container_name: obs-inventory
     environment:
       - OTLP_ENDPOINT=collector:4319
       - PORT=8083
@@ -74,7 +77,7 @@ services:
     build:
       context: ./sample-app
       dockerfile: cmd/payment/Dockerfile
-    container_name: payment
+    container_name: obs-payment
     environment:
       - OTLP_ENDPOINT=collector:4319
       - PORT=8082
@@ -87,7 +90,7 @@ services:
     build:
       context: ./sample-app
       dockerfile: cmd/checkout/Dockerfile
-    container_name: checkout
+    container_name: obs-checkout
     environment:
       - OTLP_ENDPOINT=collector:4319
       - PORT=8081
@@ -101,7 +104,7 @@ services:
     build:
       context: ./sample-app
       dockerfile: cmd/gateway/Dockerfile
-    container_name: gateway
+    container_name: obs-gateway
     environment:
       - OTLP_ENDPOINT=collector:4319
       - PORT=8080
@@ -113,7 +116,7 @@ services:
     build:
       context: ./sample-app
       dockerfile: cmd/loadgen/Dockerfile
-    container_name: loadgen
+    container_name: obs-loadgen
     environment:
       - GATEWAY_URL=http://gateway:8080/checkout
     depends_on:
